@@ -19,7 +19,7 @@ AWS RDS PostgreSQL 데이터베이스에 SSH 터널링을 통해 연결하는 MC
 ### 1. 저장소 클론
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/ysys143/AWS_PostgreSQL_MCP.git
 cd AWS_PostgreSQL_MCP
 ```
 
