@@ -1,0 +1,20 @@
+# Environment variables
+.env
+
+# Runtime config files
+.cursor/mcp.json
+bastion.sh
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Logs
+*.log
+
+# SSH keys
+*.pem
+
+# OS files
+.DS_Store
