@@ -1,10 +1,10 @@
-# PostgreSQL MCP Server
+# AWS PostgreSQL MCP Server
 
 AWS RDS PostgreSQL 데이터베이스에 SSH 터널링을 통해 연결하는 MCP (Model Context Protocol) 서버입니다.
 
 ## 프로젝트 개요
 
-이 프로젝트는 Cursor Agent가 PostgreSQL 데이터베이스에 직접 쿼리를 실행할 수 있도록 하는 MCP 서버를 제공합니다. AWS RDS 인스턴스에 SSH bastion 호스트를 통해 안전하게 연결됩니다. 공식 Postgres MCP와 같이 Node.js를 이용하는 경우, bastion 호스트를 거치는 과정에서 잘못된 주소로 요청을 보내는 오류가 발생할 수 있습니다.Python Psycopg를 이용하면 오류가 발생하지 않습니다.
+이 프로젝트는 Cursor Agent가 PostgreSQL 데이터베이스에 직접 쿼리를 실행할 수 있도록 하는 MCP 서버를 제공합니다. AWS RDS 인스턴스에 SSH bastion 호스트를 통해 안전하게 연결됩니다. 공식 Postgres MCP와 같이 Node.js를 이용하는 경우, bastion 호스트를 거치는 과정에서 잘못된 주소로 요청을 보내는 오류가 발생할 수 있습니다. Python Psycopg를 이용하면 오류가 발생하지 않습니다.
 
 ## 사전 요구사항
 
@@ -20,7 +20,7 @@ AWS RDS PostgreSQL 데이터베이스에 SSH 터널링을 통해 연결하는 MC
 
 ```bash
 git clone <repository-url>
-cd pg_mcp
+cd AWS_PostgreSQL_MCP
 ```
 
 ### 2. 가상환경 생성 및 활성화
@@ -48,15 +48,25 @@ uv pip install -r requirements.txt
 cp .env_example .env
 ```
 
-필요에 따라 `.env` 파일을 편집하여 데이터베이스 연결 정보를 수정할 수 있습니다:
+`.env` 파일을 편집하여 데이터베이스 연결 정보를 수정합니다:
 
 ```bash
 # .env 파일 내용 예시
+# Connection
 PGPASSWORD='your_password_here'
 PGHOST='localhost'
 PGPORT='10000'
 PGUSER='postgres'
 PGDATABASE='postgres'
+
+# SSH Tunnel Configuration
+SSH_KEY_FILE='your-ec2-key.pem'
+SSH_LOCAL_PORT='10000'
+SSH_RDS_ENDPOINT='your-rds-endpoint.region.rds.amazonaws.com'
+SSH_RDS_PORT='5432'
+SSH_BASTION_HOST='ec2-user@your-bastion-ip'
+
+# Logging
 LOG_LEVEL='INFO'
 LOG_FILE='pg_mcp.log'
 ```
@@ -71,7 +81,7 @@ uv run setup.py
 - git clone된 위치를 자동 감지
 - 사용자 홈 디렉토리 자동 감지  
 - `.cursor/mcp.json` 설정 파일 생성
-- `bastion.sh` 스크립트 업데이트
+- `bastion.sh` 스크립트 생성 및 업데이트
 - 모든 경로를 현재 환경에 맞게 자동 설정
 
 ### 6. SSH 키 설정
@@ -116,16 +126,17 @@ PostgreSQL 데이터베이스에서 모든 테이블 목록을 조회해주세�
 ## 프로젝트 구조
 
 ```
-pg_mcp/
+AWS_PostgreSQL_MCP/
 ├── setup.py              # 자동 설정 스크립트
 ├── mcp_server.py          # MCP 서버 메인 코드
 ├── bastion.sh             # SSH 터널링 스크립트 (자동 생성됨)
 ├── requirements.txt       # Python 의존성
 ├── .env_example          # 환경 변수 템플릿
 ├── .env                  # 환경 변수 설정 (복사해서 생성)
+├── .gitignore            # Git 무시 파일 목록
 ├── .cursor/
 │   └── mcp.json          # MCP 서버 설정 (자동 생성됨)
-├── pg_mcp.log            # 로그 파일
+├── pg_mcp.log            # 로그 파일 (실행 시 생성됨)
 └── README.md             # 이 파일
 ```
 
@@ -133,15 +144,25 @@ pg_mcp/
 
 ### 환경 변수
 
-MCP 서버는 다음 환경 변수를 사용합니다:
+MCP 서버는 `.env` 파일에서 다음 환경 변수를 사용합니다:
 
+**데이터베이스 연결:**
 - `PGHOST`: PostgreSQL 호스트 (기본값: localhost)
 - `PGPORT`: PostgreSQL 포트 (기본값: 10000)
 - `PGUSER`: 데이터베이스 사용자 (기본값: postgres)
 - `PGPASSWORD`: 데이터베이스 비밀번호
 - `PGDATABASE`: 데이터베이스 이름 (기본값: postgres)
+
+**SSH 터널링 설정:**
+- `SSH_KEY_FILE`: EC2 키 파일명
+- `SSH_LOCAL_PORT`: 로컬 포트 (기본값: 10000)
+- `SSH_RDS_ENDPOINT`: RDS 엔드포인트 주소
+- `SSH_RDS_PORT`: RDS 포트 (기본값: 5432)
+- `SSH_BASTION_HOST`: Bastion 호스트 정보
+
+**로깅:**
 - `LOG_LEVEL`: 로그 레벨 (기본값: INFO)
-- `LOG_FILE`: 로그 파일 경로 (기본값: ./pg_mcp.log)
+- `LOG_FILE`: 로그 파일 경로 (기본값: pg_mcp.log)
 
 ### 재설정
 
@@ -163,8 +184,8 @@ uv run setup.py
 {
   "mcpServers": {
     "AWS-PostgreSQL": {
-      "command": "/절대경로/pg_mcp/.venv/bin/python",
-      "args": ["/절대경로/pg_mcp/mcp_server.py"],
+      "command": "/절대경로/AWS_PostgreSQL_MCP/.venv/bin/python",
+      "args": ["/절대경로/AWS_PostgreSQL_MCP/mcp_server.py"],
       "env": {
         "PGHOST": "localhost",
         "PGPORT": "10000",
@@ -172,7 +193,7 @@ uv run setup.py
         "PGPASSWORD": "your_password_here",
         "PGDATABASE": "postgres",
         "LOG_LEVEL": "INFO",
-        "LOG_FILE": "/절대경로/pg_mcp/pg_mcp.log"
+        "LOG_FILE": "/절대경로/AWS_PostgreSQL_MCP/pg_mcp.log"
       }
     }
   }
@@ -183,16 +204,16 @@ uv run setup.py
 ```bash
 # 현재 프로젝트의 절대 경로 확인
 pwd
-# 결과: /Users/username/Documents/GitHub/pg_mcp
+# 결과: /Users/username/Documents/GitHub/AWS_PostgreSQL_MCP
 
 # 가상환경 Python 경로 확인
 which python
 # 가상환경 활성화 후 실행
 ```
 
-### 2. Bastion 스크립트 수정
+### 2. Bastion 스크립트 생성
 
-`bastion.sh` 파일을 다음과 같이 수정합니다:
+`bastion.sh` 파일을 다음과 같이 생성합니다:
 
 ```bash
 #!/bin/bash
@@ -247,6 +268,20 @@ ls -la ~/.ssh/your-ec2-key.pem
 # 결과는 -rw------- 이어야 합니다
 ```
 
+### 환경 초기화
+
+프로젝트를 초기 상태로 되돌리려면:
+
+```bash
+# Git으로 추적되지 않는 파일들 제거
+git clean -fxd
+
+# 가상환경 재생성
+uv venv
+source .venv/bin/activate
+uv pip install -r requirements.txt
+```
+
 ## 주요 기능
 
 - **자동 경로 감지**: git clone 위치에 관계없이 자동으로 올바른 경로 설정
@@ -254,4 +289,5 @@ ls -la ~/.ssh/your-ec2-key.pem
 - **MCP 프로토콜**: Claude 등 AI 모델과의 표준 인터페이스
 - **로깅**: 상세한 로그로 디버깅 지원
 - **오류 처리**: 연결 실패 시 자동 재시도 및 상세 오류 메시지
+- **환경 변수 관리**: `.env` 파일을 통한 안전한 설정 관리
 
