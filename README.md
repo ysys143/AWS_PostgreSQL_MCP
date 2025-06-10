@@ -291,3 +291,10 @@ uv pip install -r requirements.txt
 - **오류 처리**: 연결 실패 시 자동 재시도 및 상세 오류 메시지
 - **환경 변수 관리**: `.env` 파일을 통한 안전한 설정 관리
 
+
+
+## Windows 환경 예외 메모
+
+- **uv 설치시 V3 등 실시간 감시 중단**: V3에서 uv 설치를 차단할 수 있음
+- **PowerShell 7 Upgrade**: 중간에 Upgrade 해야 한다는 메세지 나옴
+- **python.exe 확장자 명시**: mcp.json 파일에 "command"에 ".exe" 까지 명시해 주어야 함
